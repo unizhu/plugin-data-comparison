@@ -1,10 +1,25 @@
 [
   {
     "alias": [],
-    "command": "hello:world",
+    "command": "compare:data",
     "flagAliases": [],
-    "flagChars": ["n"],
-    "flags": ["flags-dir", "json", "name"],
+    "flagChars": ["s", "t", "m"],
+    "flags": [
+      "flags-dir",
+      "json",
+      "source-org",
+      "target-org",
+      "object",
+      "metrics",
+      "where",
+      "sample-size",
+      "metadata-cache",
+      "format",
+      "output-file",
+      "report-title",
+      "timeout",
+      "api-version"
+    ],
     "plugin": "@salesforce/plugin-data-comparison"
   }
 ]

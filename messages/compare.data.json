@@ -1,0 +1,20 @@
+{
+  "summary": "Compare record data metrics between two Salesforce orgs and prepare the data extraction.",
+  "description": "Retrieves metadata from both orgs, validates the requested metrics, and prepares dynamic SOQL that can be used to compare record data counts and aggregates.",
+  "examples": [
+    "sf compare:data --source-org prod --target-org sbx --object Opportunity --metrics count,sum:Amount,avg:Amount",
+    "sf compare:data --source-org prod --target-org qa --object Account --metrics count,sum:AnnualRevenue --where \"BillingCountry = 'US'\" --format csv"
+  ],
+  "flags.source-org.summary": "Alias or username for the source org (baseline).",
+  "flags.target-org.summary": "Alias or username for the target org.",
+  "flags.object.summary": "API name of the sObject to compare.",
+  "flags.metrics.summary": "Comma-separated list of metrics (count,sum:<field>,avg:<field>,min:<field>,max:<field>).",
+  "flags.where.summary": "Optional filter to apply to both org queries (omit the WHERE keyword).",
+  "flags.sample-size.summary": "Number of sample rows to fetch for spot checks (0 disables sampling).",
+  "flags.metadata-cache.summary": "Minutes to cache metadata describe results (0 disables caching).",
+  "flags.format.summary": "Output format for the comparison report.",
+  "flags.output-file.summary": "Path to write CSV or PDF output.",
+  "flags.report-title.summary": "Title to show on generated reports.",
+  "flags.timeout.summary": "Minutes to wait for long-running queries before timing out.",
+  "flags.api-version.summary": "Override the API version for metadata describes and queries."
+}
