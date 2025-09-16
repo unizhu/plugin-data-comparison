@@ -3501,6 +3501,15 @@ domutils@^3.1.0:
     domelementtype "^2.3.0"
     domhandler "^5.0.3"
 
+domutils@^3.2.1:
+  version "3.2.2"
+  resolved "https://registry.yarnpkg.com/domutils/-/domutils-3.2.2.tgz#edbfe2b668b0c1d97c24baf0f1062b132221bc78"
+  integrity sha512-6kZKyUajlDuqlHKVX1w7gyslj9MPIXzIFiz/rGu35uC1wMi+kMhQwGhl4lt9unC9Vb9INnY9Z3/ZA3+FhASLaw==
+  dependencies:
+    dom-serializer "^2.0.0"
+    domelementtype "^2.3.0"
+    domhandler "^5.0.3"
+
 dot-case@^3.0.4:
   version "3.0.4"
   resolved "https://registry.yarnpkg.com/dot-case/-/dot-case-3.0.4.tgz#9b2b670d00a431667a8a75ba29cd1b98809ce751"
@@ -3575,6 +3584,11 @@ entities@^4.2.0, entities@^4.4.0, entities@^4.5.0:
   version "4.5.0"
   resolved "https://registry.yarnpkg.com/entities/-/entities-4.5.0.tgz#5d268ea5e7113ec74c4d033b79ea5a35a488fb48"
   integrity sha512-V0hjH4dGPh9Ao5p0MoRY6BVqtwCjhz6vI5LT8AJ55H+4g9/4vbHx1I54fS0XuclLhDHArPQCiMjDxjaL8fPxhw==
+
+entities@^6.0.0:
+  version "6.0.1"
+  resolved "https://registry.yarnpkg.com/entities/-/entities-6.0.1.tgz#c28c34a43379ca7f61d074130b2f5f7020a30694"
+  integrity sha512-aN97NXWF6AWBTahfVOIrB/NShkzi5H7F9r1s9mD3cDj4Ko5f2qhhVoYMibXF7GlLveb/D2ioWay8lxI97Ven3g==
 
 environment@^1.0.0:
   version "1.1.0"
@@ -4585,6 +4599,16 @@ html-escaper@^2.0.0:
   resolved "https://registry.yarnpkg.com/html-escaper/-/html-escaper-2.0.2.tgz#dfd60027da36a36dfcbe236262c00a5822681453"
   integrity sha512-H2iMtd0I4Mt5eYiapRdIDjp+XzelXQ0tFE4JS7YFwFevXXMmOp9myNrUvCg0D6ws8iqkRPBfKHgbwig1SmlLfg==
 
+htmlparser2@^10.0.0:
+  version "10.0.0"
+  resolved "https://registry.yarnpkg.com/htmlparser2/-/htmlparser2-10.0.0.tgz#77ad249037b66bf8cc99c6e286ef73b83aeb621d"
+  integrity sha512-TwAZM+zE5Tq3lrEHvOlvwgj1XLWQCtaaibSN11Q+gGBAS7Y1uZSWwXXRe4iF6OXnaq1riyQAPFOBtYc77Mxq0g==
+  dependencies:
+    domelementtype "^2.3.0"
+    domhandler "^5.0.3"
+    domutils "^3.2.1"
+    entities "^6.0.0"
+
 htmlparser2@^9.0.0:
   version "9.0.0"
   resolved "https://registry.yarnpkg.com/htmlparser2/-/htmlparser2-9.0.0.tgz#e431142b7eeb1d91672742dea48af8ac7140cddb"
@@ -5330,6 +5354,22 @@ linkinator@^6.1.1:
     gaxios "^6.0.0"
     glob "^10.3.10"
     htmlparser2 "^9.0.0"
+    marked "^13.0.0"
+    meow "^13.0.0"
+    mime "^4.0.0"
+    server-destroy "^1.0.1"
+    srcset "^5.0.0"
+
+linkinator@^6.1.4:
+  version "6.1.4"
+  resolved "https://registry.yarnpkg.com/linkinator/-/linkinator-6.1.4.tgz#9a2fb961ad38c7041d907ecd72d34d32a5b06e8e"
+  integrity sha512-7DXjwFiJ6rqye8OawwWi/CyDdKdIb69HLCbPhRI6tGSNnGruWFw8qucNsoWFXybel/I960UujFHefjvprhhvYA==
+  dependencies:
+    chalk "^5.0.0"
+    escape-html "^1.0.3"
+    gaxios "^6.0.0"
+    glob "^10.3.10"
+    htmlparser2 "^10.0.0"
     marked "^13.0.0"
     meow "^13.0.0"
     mime "^4.0.0"

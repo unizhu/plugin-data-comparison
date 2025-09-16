@@ -1,0 +1,194 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$ref": "#/definitions/CompareDataResult",
+  "definitions": {
+    "CompareDataResult": {
+      "type": "object",
+      "properties": {
+        "object": {
+          "type": "string"
+        },
+        "metrics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/MetricComparisonRow"
+          }
+        },
+        "filters": {
+          "type": "object",
+          "properties": {
+            "where": {
+              "type": "string"
+            },
+            "sampleSize": {
+              "type": "number"
+            }
+          },
+          "required": ["sampleSize"],
+          "additionalProperties": false
+        },
+        "format": {
+          "type": "string",
+          "enum": ["table", "json", "csv", "pdf"]
+        },
+        "outputFile": {
+          "type": "string"
+        },
+        "reportTitle": {
+          "type": "string"
+        },
+        "metadataCacheMinutes": {
+          "type": "number"
+        },
+        "source": {
+          "type": "object",
+          "properties": {
+            "aliasOrUsername": {
+              "type": "string"
+            },
+            "orgId": {
+              "type": "string"
+            },
+            "apiVersion": {
+              "type": "string"
+            }
+          },
+          "required": ["aliasOrUsername", "orgId", "apiVersion"],
+          "additionalProperties": false
+        },
+        "target": {
+          "type": "object",
+          "properties": {
+            "aliasOrUsername": {
+              "type": "string"
+            },
+            "orgId": {
+              "type": "string"
+            },
+            "apiVersion": {
+              "type": "string"
+            }
+          },
+          "required": ["aliasOrUsername", "orgId", "apiVersion"],
+          "additionalProperties": false
+        },
+        "queries": {
+          "type": "object",
+          "properties": {
+            "aggregate": {
+              "type": "string"
+            },
+            "sample": {
+              "type": "string"
+            }
+          },
+          "required": ["aggregate"],
+          "additionalProperties": false
+        },
+        "samples": {
+          "$ref": "#/definitions/SampleData"
+        }
+      },
+      "required": [
+        "object",
+        "metrics",
+        "filters",
+        "format",
+        "metadataCacheMinutes",
+        "source",
+        "target",
+        "queries",
+        "samples"
+      ],
+      "additionalProperties": false
+    },
+    "MetricComparisonRow": {
+      "type": "object",
+      "properties": {
+        "metric": {
+          "$ref": "#/definitions/ResolvedMetric"
+        },
+        "alias": {
+          "type": "string"
+        },
+        "sourceValue": {
+          "type": ["number", "string", "null"]
+        },
+        "targetValue": {
+          "type": ["number", "string", "null"]
+        },
+        "difference": {
+          "type": ["number", "null"]
+        }
+      },
+      "required": ["metric", "alias", "sourceValue", "targetValue", "difference"],
+      "additionalProperties": false
+    },
+    "ResolvedMetric": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "count"
+            },
+            "valueType": {
+              "$ref": "#/definitions/MetricValueType"
+            }
+          },
+          "required": ["kind", "valueType"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": ["sum", "avg", "min", "max"]
+            },
+            "field": {
+              "type": "string"
+            },
+            "fieldType": {
+              "type": "string"
+            },
+            "label": {
+              "type": "string"
+            },
+            "valueType": {
+              "$ref": "#/definitions/MetricValueType"
+            }
+          },
+          "required": ["kind", "field", "fieldType", "valueType"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "MetricValueType": {
+      "type": "string",
+      "enum": ["number", "date"]
+    },
+    "SampleData": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": {}
+          }
+        },
+        "target": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": {}
+          }
+        }
+      },
+      "required": ["source", "target"],
+      "additionalProperties": false
+    }
+  }
+}
