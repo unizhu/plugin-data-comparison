@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### Features
+
+- feat: initial metrics comparison command
+
 ## [1.1.64](https://github.com/salesforcecli/plugin-data-comparison/compare/1.1.63...1.1.64) (2025-09-14)
 
 ### Bug Fixes
