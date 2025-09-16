@@ -44,3 +44,8 @@ node_modules
 # os specific files
 .DS_Store
 .idea
+.yarn/*
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/patches

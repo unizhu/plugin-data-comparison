@@ -78,3 +78,10 @@ fi
 ```
 
 That’s it. See `sf compare:data --help` for the full flag list and explore the repository for implementation details.
+
+## 7. Advanced Metrics
+
+- Distinct counts: `--metrics count-distinct:Id`
+- Ratios: `--metrics ratio:sum:AnnualRevenue/sum:Amount`
+- Statistical aggregates: `--metrics median:Amount --metrics stddev:Amount`
+- Conditional aggregations: `--metrics count-if:StageName = 'Closed Won'` or `--metrics sum-if:Amount:StageName = 'Closed Won'`

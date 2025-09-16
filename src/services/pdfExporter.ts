@@ -18,17 +18,40 @@ import { promises as fs } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 
 import type { CompareDataResult } from '../commands/compare/data.js';
+import type { ResolvedMetric } from './metricParser.js';
 
 const escapePdfText = (input: string): string =>
   input.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
 
-const formatMetricLabel = (comparison: CompareDataResult['metrics'][number]): string => {
-  const metric = comparison.metric;
-  if (metric.kind === 'count') {
-    return 'COUNT()';
+const formatMetricLabel = (metric: ResolvedMetric): string => {
+  switch (metric.kind) {
+    case 'count':
+      return 'COUNT(Id)';
+    case 'fieldAggregate':
+      return `${metric.fn.toUpperCase()}(${metric.field})`;
+    case 'countDistinct':
+      return `COUNT_DISTINCT(${metric.field})`;
+    case 'ratio':
+      return metric.label;
+    case 'countIf':
+      return `COUNT_IF(${metric.condition})`;
+    case 'sumIf':
+      return `SUM_IF(${metric.field}|${metric.condition})`;
+  }
+  const exhaustiveCheck: never = metric;
+  return exhaustiveCheck;
+};
+
+const formatMetricValue = (metric: ResolvedMetric, value: number | string | null): string => {
+  if (value === null || value === undefined) {
+    return '—';
   }
 
-  return `${metric.kind.toUpperCase()}(${metric.field})`;
+  if (metric.valueType === 'number' && typeof value === 'number') {
+    return value.toString();
+  }
+
+  return String(value);
 };
 
 const padColumn = (value: string, width: number): string => value.padEnd(width, ' ');
@@ -41,7 +64,7 @@ const buildContentStream = (result: CompareDataResult): string => {
   lines.push(`Source Org: ${result.source.aliasOrUsername} (${result.source.orgId})`);
   lines.push(`Target Org: ${result.target.aliasOrUsername} (${result.target.orgId})`);
   lines.push(`Object: ${result.object}`);
-  lines.push(`Metrics: ${result.metrics.map((metric) => formatMetricLabel(metric)).join(' | ')}`);
+  lines.push(`Metrics: ${result.metrics.map((metric) => formatMetricLabel(metric.metric)).join(' | ')}`);
   lines.push(`Filter: ${result.filters.where ?? ''}`);
   lines.push(`Sample Size: ${result.filters.sampleSize}`);
   lines.push('');
@@ -49,11 +72,11 @@ const buildContentStream = (result: CompareDataResult): string => {
   const header = `${padColumn('Metric', 30)}${padColumn('Source', 15)}${padColumn('Target', 15)}Difference`;
   lines.push(header);
   for (const metric of result.metrics) {
-    const source = metric.sourceValue === null ? '—' : String(metric.sourceValue);
-    const target = metric.targetValue === null ? '—' : String(metric.targetValue);
+    const source = formatMetricValue(metric.metric, metric.sourceValue);
+    const target = formatMetricValue(metric.metric, metric.targetValue);
     const difference = metric.difference === null ? '—' : String(metric.difference);
     lines.push(
-      `${padColumn(formatMetricLabel(metric), 30)}${padColumn(source, 15)}${padColumn(target, 15)}${difference}`
+      `${padColumn(formatMetricLabel(metric.metric), 30)}${padColumn(source, 15)}${padColumn(target, 15)}${difference}`
     );
   }
 

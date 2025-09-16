@@ -18,6 +18,7 @@ import { promises as fs } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 
 import type { CompareDataResult } from '../commands/compare/data.js';
+import type { ResolvedMetric } from './metricParser.js';
 
 const csvValue = (value: unknown): string => {
   if (value === null || value === undefined) {
@@ -38,13 +39,35 @@ const csvValue = (value: unknown): string => {
 
 const csvRow = (columns: readonly unknown[]): string => columns.map(csvValue).join(',');
 
-const formatMetricLabel = (comparison: CompareDataResult['metrics'][number]): string => {
-  const metric = comparison.metric;
-  if (metric.kind === 'count') {
-    return 'COUNT()';
+const formatMetricLabel = (metric: ResolvedMetric): string => {
+  switch (metric.kind) {
+    case 'count':
+      return 'COUNT(Id)';
+    case 'fieldAggregate':
+      return `${metric.fn.toUpperCase()}(${metric.field})`;
+    case 'countDistinct':
+      return `COUNT_DISTINCT(${metric.field})`;
+    case 'ratio':
+      return metric.label;
+    case 'countIf':
+      return `COUNT_IF(${metric.condition})`;
+    case 'sumIf':
+      return `SUM_IF(${metric.field}|${metric.condition})`;
+  }
+  const exhaustiveCheck: never = metric;
+  return exhaustiveCheck;
+};
+
+const formatMetricValue = (metric: ResolvedMetric, value: number | string | null): string => {
+  if (value === null || value === undefined) {
+    return '';
   }
 
-  return `${metric.kind.toUpperCase()}(${metric.field})`;
+  if (metric.valueType === 'number' && typeof value === 'number') {
+    return value.toString();
+  }
+
+  return String(value);
 };
 
 const collectSampleColumns = (samples: Array<Record<string, unknown>>): string[] => {
@@ -87,7 +110,7 @@ const writeSampleSection = (lines: string[], label: string, samples: Array<Recor
 
 export const exportComparisonToCsv = async (result: CompareDataResult, outputFile: string): Promise<string> => {
   const now = new Date().toISOString();
-  const metricsSummary = result.metrics.map((metric) => formatMetricLabel(metric)).join(' | ');
+  const metricsSummary = result.metrics.map((metric) => formatMetricLabel(metric.metric)).join(' | ');
 
   const lines: string[] = [];
   lines.push(csvRow(['Report Title', result.reportTitle ?? 'Salesforce Data Comparison']));
@@ -104,7 +127,12 @@ export const exportComparisonToCsv = async (result: CompareDataResult, outputFil
   for (const comparison of result.metrics) {
     const formattedDifference = comparison.difference ?? '';
     lines.push(
-      csvRow([formatMetricLabel(comparison), comparison.sourceValue, comparison.targetValue, formattedDifference])
+      csvRow([
+        formatMetricLabel(comparison.metric),
+        formatMetricValue(comparison.metric, comparison.sourceValue),
+        formatMetricValue(comparison.metric, comparison.targetValue),
+        formattedDifference,
+      ])
     );
   }
 

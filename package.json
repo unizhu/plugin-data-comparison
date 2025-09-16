@@ -70,6 +70,7 @@
     "format": "wireit",
     "link-check": "wireit",
     "lint": "wireit",
+    "postcompile": "oclif manifest",
     "postpack": "sf-clean --ignore-signing-artifacts",
     "prepack": "sf-prepack",
     "prepare": "sf-install",
@@ -145,7 +146,9 @@
     "test:only": {
       "command": "nyc mocha \"test/**/*.test.ts\"",
       "env": {
-        "FORCE_COLOR": "2"
+        "FORCE_COLOR": "2",
+        "TS_NODE_PROJECT": "test/tsconfig.json",
+        "NODE_OPTIONS": "--require ./scripts/wireit-cpu-guard.cjs"
       },
       "files": [
         "test/**/*.ts",
@@ -179,15 +182,12 @@
       ]
     },
     "test:json-schema": {
-      "command": "node --loader ts-node/esm ./bin/dev.js schema:compare",
+      "command": "node --loader ts-node/esm --no-warnings=ExperimentalWarning \"./bin/dev.js\" schema:compare",
       "files": [
         "src/**/*.ts",
         "schemas"
       ],
-      "output": [],
-      "env": {
-        "NODE_OPTIONS": "--no-deprecation"
-      }
+      "output": []
     },
     "link-check": {
       "command": "node -e \"process.exit(process.env.CI ? 0 : 1)\" || linkinator \"**/*.md\" --skip \"CHANGELOG.md|node_modules|test/|confluence.internal.salesforce.com|my.salesforce.com|localhost|%s\" --markdown --retry --directory-listing --verbosity error",
@@ -200,5 +200,6 @@
     }
   },
   "exports": "./lib/index.js",
-  "type": "module"
+  "type": "module",
+  "packageManager": "yarn@1.22.22"
 }

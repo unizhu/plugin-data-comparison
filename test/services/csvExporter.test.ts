@@ -35,7 +35,8 @@ const buildResult = (): CompareDataResult => ({
     },
     {
       metric: {
-        kind: 'sum',
+        kind: 'fieldAggregate',
+        fn: 'sum',
         field: 'AnnualRevenue',
         fieldType: 'currency',
         label: 'Annual Revenue',
@@ -66,7 +67,7 @@ const buildResult = (): CompareDataResult => ({
     apiVersion: '60.0',
   },
   queries: {
-    aggregate: 'SELECT COUNT() count__all FROM Account',
+    aggregate: 'SELECT COUNT(Id) count__all FROM Account',
     sample: undefined,
   },
   samples: {
@@ -90,7 +91,7 @@ describe('exportComparisonToCsv', () => {
     expect(resolvedPath).to.equal(outputPath);
     expect(fileContent).to.include('Report Title,Data Comparison Sample');
     expect(fileContent).to.include('Metric,Source,Target,Difference');
-    expect(fileContent).to.include('COUNT(),10,12,2');
+    expect(fileContent).to.include('COUNT(Id),10,12,2');
     expect(fileContent).to.include('SUM(AnnualRevenue),5000,6500,1500');
     expect(fileContent).to.include('Sample Records - Source');
     expect(fileContent).to.include('Sample Records - Target');

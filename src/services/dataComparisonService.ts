@@ -16,8 +16,8 @@
 
 import type { Org } from '@salesforce/core';
 
-import type { AggregatePlan } from './aggregateQueryBuilder.js';
-import type { ResolvedMetric } from './metricParser.js';
+import type { AggregatePlan, MetricDefinition } from './aggregateQueryBuilder.js';
+import type { MetricValueType, ResolvedMetric } from './metricParser.js';
 
 export type MetricComparisonRow = {
   metric: ResolvedMetric;
@@ -66,19 +66,9 @@ export const compareData = async ({
     evaluateOrg({ org: targetOrg, plan, sampleQuery, apiVersionOverride }),
   ]);
 
-  const metrics = plan.expressions.map((expression) => {
-    const sourceValue = sourceEvaluation.aggregates[expression.alias] ?? null;
-    const targetValue = targetEvaluation.aggregates[expression.alias] ?? null;
-    const difference = computeDifference(expression.metric, sourceValue, targetValue);
-
-    return {
-      metric: expression.metric,
-      alias: expression.alias,
-      sourceValue,
-      targetValue,
-      difference,
-    } satisfies MetricComparisonRow;
-  });
+  const metrics = plan.metrics.map((definition) =>
+    buildMetricRow(definition, sourceEvaluation.aggregates, targetEvaluation.aggregates)
+  );
 
   return {
     metrics,
@@ -105,14 +95,13 @@ const evaluateOrg = async ({
   apiVersionOverride?: string;
 }): Promise<OrgEvaluation> => {
   const connection = await Promise.resolve(org.getConnection(apiVersionOverride));
-
   const aggregateResponse = await connection.query<Record<string, unknown>>(plan.aggregateQuery);
   const record = aggregateResponse.records[0] ?? {};
-  const aggregates: Record<string, number | string | null> = {};
 
+  const aggregates: Record<string, number | string | null> = {};
   for (const expression of plan.expressions) {
     const value = record[expression.alias];
-    aggregates[expression.alias] = normalizeAggregateValue(expression.metric, value);
+    aggregates[expression.alias] = normalizeAggregateValue(expression.valueType, value);
   }
 
   let samples: Array<Record<string, unknown>> = [];
@@ -124,12 +113,12 @@ const evaluateOrg = async ({
   return { aggregates, samples } satisfies OrgEvaluation;
 };
 
-const normalizeAggregateValue = (metric: ResolvedMetric, raw: unknown): number | string | null => {
+const normalizeAggregateValue = (valueType: MetricValueType, raw: unknown): number | string | null => {
   if (raw === null || raw === undefined) {
     return null;
   }
 
-  if (metric.valueType === 'number') {
+  if (valueType === 'number') {
     if (typeof raw === 'number') {
       return raw;
     }
@@ -143,6 +132,55 @@ const normalizeAggregateValue = (metric: ResolvedMetric, raw: unknown): number |
   }
 
   return typeof raw === 'string' ? raw : String(raw);
+};
+
+const buildMetricRow = (
+  definition: MetricDefinition,
+  sourceAggregates: Record<string, number | string | null>,
+  targetAggregates: Record<string, number | string | null>
+): MetricComparisonRow => {
+  if (definition.kind === 'direct') {
+    const sourceValue = sourceAggregates[definition.alias] ?? null;
+    const targetValue = targetAggregates[definition.alias] ?? null;
+    const difference = computeDifference(definition.metric, sourceValue, targetValue);
+
+    return {
+      metric: definition.metric,
+      alias: definition.alias,
+      sourceValue,
+      targetValue,
+      difference,
+    } satisfies MetricComparisonRow;
+  }
+
+  const numeratorSource = sourceAggregates[definition.numeratorAlias] ?? null;
+  const numeratorTarget = targetAggregates[definition.numeratorAlias] ?? null;
+  const denominatorSource = sourceAggregates[definition.denominatorAlias] ?? null;
+  const denominatorTarget = targetAggregates[definition.denominatorAlias] ?? null;
+
+  const sourceRatio = computeRatioValue(numeratorSource, denominatorSource);
+  const targetRatio = computeRatioValue(numeratorTarget, denominatorTarget);
+  const difference = computeDifference(definition.metric, sourceRatio, targetRatio);
+
+  return {
+    metric: definition.metric,
+    alias: definition.alias,
+    sourceValue: sourceRatio,
+    targetValue: targetRatio,
+    difference,
+  } satisfies MetricComparisonRow;
+};
+
+const computeRatioValue = (numerator: number | string | null, denominator: number | string | null): number | null => {
+  if (typeof numerator !== 'number' || typeof denominator !== 'number') {
+    return null;
+  }
+
+  if (denominator === 0) {
+    return null;
+  }
+
+  return numerator / denominator;
 };
 
 const computeDifference = (

@@ -141,11 +141,14 @@
           "additionalProperties": false
         },
         {
+          "$ref": "#/definitions/ResolvedFieldAggregateMetric"
+        },
+        {
           "type": "object",
           "properties": {
             "kind": {
               "type": "string",
-              "enum": ["sum", "avg", "min", "max"]
+              "const": "countDistinct"
             },
             "field": {
               "type": "string"
@@ -162,12 +165,108 @@
           },
           "required": ["kind", "field", "fieldType", "valueType"],
           "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "ratio"
+            },
+            "label": {
+              "type": "string"
+            },
+            "numerator": {
+              "$ref": "#/definitions/ResolvedFieldAggregateMetric"
+            },
+            "denominator": {
+              "$ref": "#/definitions/ResolvedFieldAggregateMetric"
+            },
+            "valueType": {
+              "$ref": "#/definitions/MetricValueType"
+            }
+          },
+          "required": ["kind", "label", "numerator", "denominator", "valueType"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "countIf"
+            },
+            "condition": {
+              "type": "string"
+            },
+            "valueType": {
+              "$ref": "#/definitions/MetricValueType"
+            }
+          },
+          "required": ["kind", "condition", "valueType"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "sumIf"
+            },
+            "field": {
+              "type": "string"
+            },
+            "fieldType": {
+              "type": "string"
+            },
+            "condition": {
+              "type": "string"
+            },
+            "label": {
+              "type": "string"
+            },
+            "valueType": {
+              "$ref": "#/definitions/MetricValueType"
+            }
+          },
+          "required": ["kind", "field", "fieldType", "condition", "valueType"],
+          "additionalProperties": false
         }
       ]
     },
     "MetricValueType": {
       "type": "string",
       "enum": ["number", "date"]
+    },
+    "ResolvedFieldAggregateMetric": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "fieldAggregate"
+        },
+        "fn": {
+          "$ref": "#/definitions/SimpleAggregateFunction"
+        },
+        "field": {
+          "type": "string"
+        },
+        "fieldType": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "valueType": {
+          "$ref": "#/definitions/MetricValueType"
+        }
+      },
+      "required": ["kind", "fn", "field", "fieldType", "valueType"],
+      "additionalProperties": false
+    },
+    "SimpleAggregateFunction": {
+      "type": "string",
+      "enum": ["sum", "avg", "min", "max", "median", "stddev", "variance"]
     },
     "SampleData": {
       "type": "object",

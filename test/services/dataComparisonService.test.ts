@@ -18,39 +18,12 @@ import { expect } from 'chai';
 import { Org } from '@salesforce/core';
 import { TestContext } from '@salesforce/core/testSetup';
 
+import { AggregateQueryBuilder } from '../../src/services/aggregateQueryBuilder.js';
 import { DataComparisonService } from '../../src/services/dataComparisonService.js';
-import type { AggregatePlan } from '../../src/services/aggregateQueryBuilder.js';
-
-const COUNT_ALIAS = 'countAll';
-const SUM_ANNUAL_REVENUE_ALIAS = 'sumAnnualrevenue';
-// const MAX_LAST_MODIFIED_ALIAS = 'maxLastmodifieddate';
+import type { AggregatePlan, MetricDefinition } from '../../src/services/aggregateQueryBuilder.js';
+import type { ResolvedMetric } from '../../src/services/metricParser.js';
 
 const service = new DataComparisonService();
-
-const buildPlan = (): AggregatePlan => ({
-  objectName: 'Account',
-  whereClause: undefined,
-  expressions: [
-    {
-      alias: COUNT_ALIAS,
-      metric: { kind: 'count', valueType: 'number' },
-      soql: 'COUNT()',
-    },
-    {
-      alias: SUM_ANNUAL_REVENUE_ALIAS,
-      metric: {
-        kind: 'sum',
-        field: 'AnnualRevenue',
-        fieldType: 'currency',
-        label: 'Annual Revenue',
-        valueType: 'number',
-      },
-      soql: 'SUM(AnnualRevenue)',
-    },
-  ],
-  aggregateQuery: 'SELECT COUNT() countAll, SUM(AnnualRevenue) sumAnnualrevenue FROM Account',
-  sampleFields: ['AnnualRevenue'],
-});
 
 describe('DataComparisonService', () => {
   const $$ = new TestContext();
@@ -92,13 +65,29 @@ describe('DataComparisonService', () => {
   };
 
   it('returns metrics with computed differences and samples', async () => {
-    const plan = buildPlan();
-    const sourceOrg = buildOrg('00D-source', { countAll: 10, sumAnnualrevenue: 5000 }, [
-      { Id: '001-source-1', AnnualRevenue: 100 },
-    ]);
-    const targetOrg = buildOrg('00D-target', { countAll: 12, sumAnnualrevenue: 6500 }, [
-      { Id: '001-target-1', AnnualRevenue: 200 },
-    ]);
+    const countMetric: ResolvedMetric = { kind: 'count', valueType: 'number' };
+    const sumMetric: ResolvedMetric = {
+      kind: 'fieldAggregate',
+      fn: 'sum',
+      field: 'AnnualRevenue',
+      fieldType: 'currency',
+      label: 'Annual Revenue',
+      valueType: 'number',
+    };
+
+    const plan = new AggregateQueryBuilder({
+      objectName: 'Account',
+      metrics: [countMetric, sumMetric],
+    }).build();
+
+    const countAlias = (plan.metrics[0] as MetricDefinition & { kind: 'direct' }).alias;
+    const sumAlias = (plan.metrics[1] as MetricDefinition & { kind: 'direct' }).alias;
+
+    const sourceRecord: Record<string, unknown> = { [countAlias]: 10, [sumAlias]: 5000 };
+    const targetRecord: Record<string, unknown> = { [countAlias]: 12, [sumAlias]: 6500 };
+
+    const sourceOrg = buildOrg('00D-source', sourceRecord, [{ Id: '001-source-1', AnnualRevenue: 100 }]);
+    const targetOrg = buildOrg('00D-target', targetRecord, [{ Id: '001-target-1', AnnualRevenue: 200 }]);
 
     const comparison = await service.compare({
       sourceOrg,
@@ -114,22 +103,78 @@ describe('DataComparisonService', () => {
     expect(comparison.samples.target).to.have.length(1);
   });
 
+  it('computes ratio metrics from shared expressions', async () => {
+    const numerator: ResolvedMetric = {
+      kind: 'fieldAggregate',
+      fn: 'sum',
+      field: 'AnnualRevenue',
+      fieldType: 'currency',
+      label: 'Annual Revenue',
+      valueType: 'number',
+    };
+    const denominator: ResolvedMetric = {
+      kind: 'fieldAggregate',
+      fn: 'sum',
+      field: 'Amount',
+      fieldType: 'currency',
+      label: 'Amount',
+      valueType: 'number',
+    };
+    const ratioMetric: ResolvedMetric = {
+      kind: 'ratio',
+      label: 'SUM(AnnualRevenue)/SUM(Amount)',
+      numerator,
+      denominator,
+      valueType: 'number',
+    };
+
+    const plan = new AggregateQueryBuilder({
+      objectName: 'Opportunity',
+      metrics: [ratioMetric],
+    }).build();
+
+    const ratioDefinition = plan.metrics[0];
+    if (ratioDefinition.kind !== 'ratio') {
+      throw new Error('Expected ratio metric definition.');
+    }
+
+    const sourceRecord: Record<string, unknown> = {
+      [ratioDefinition.numeratorAlias]: 200,
+      [ratioDefinition.denominatorAlias]: 100,
+    };
+    const targetRecord: Record<string, unknown> = {
+      [ratioDefinition.numeratorAlias]: 300,
+      [ratioDefinition.denominatorAlias]: 150,
+    };
+
+    const sourceOrg = buildOrg('00D-source', sourceRecord);
+    const targetOrg = buildOrg('00D-target', targetRecord);
+
+    const comparison = await service.compare({ sourceOrg, targetOrg, plan });
+    expect(comparison.metrics[0].sourceValue).to.equal(2);
+    expect(comparison.metrics[0].targetValue).to.equal(2);
+    expect(comparison.metrics[0].difference).to.equal(0);
+  });
+
   it('returns null difference for non-numeric metrics', async () => {
+    const maxMetric: ResolvedMetric = {
+      kind: 'fieldAggregate',
+      fn: 'max',
+      field: 'LastModifiedDate',
+      fieldType: 'datetime',
+      valueType: 'date',
+    };
+
     const plan: AggregatePlan = {
       objectName: 'Account',
       whereClause: undefined,
-      expressions: [
-        {
-          alias: 'maxLastmodifieddate',
-          metric: { kind: 'max', field: 'LastModifiedDate', fieldType: 'datetime', valueType: 'date' },
-          soql: 'MAX(LastModifiedDate)',
-        },
-      ],
-      aggregateQuery: 'SELECT MAX(LastModifiedDate) maxLastmodifieddate FROM Account',
+      aggregateQuery: 'SELECT MAX(LastModifiedDate) max__lastmodifieddate FROM Account',
+      expressions: [{ alias: 'max__lastmodifieddate', soql: 'MAX(LastModifiedDate)', valueType: 'date' }],
+      metrics: [{ kind: 'direct', metric: maxMetric, alias: 'max__lastmodifieddate' } as MetricDefinition],
       sampleFields: ['LastModifiedDate'],
     };
 
-    const aggregateRecord = { maxLastmodifieddate: '2025-01-01T00:00:00.000Z' };
+    const aggregateRecord: Record<string, unknown> = { ['max__lastmodifieddate']: '2025-01-01T00:00:00.000Z' };
     const sourceOrg = buildOrg('00D-source', aggregateRecord);
     const targetOrg = buildOrg('00D-target', aggregateRecord);
 

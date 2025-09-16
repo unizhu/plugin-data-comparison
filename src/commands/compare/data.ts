@@ -229,30 +229,11 @@ export default class CompareData extends SfCommand<CompareDataResult> {
 
   private renderSummaryTable(rows: MetricComparisonRow[]): void {
     const formatter = new Intl.NumberFormat('en-US');
-    const formatValue = (metric: ResolvedMetric, value: number | string | null): string => {
-      if (value === null) {
-        return '—';
-      }
-
-      if (metric.valueType === 'number' && typeof value === 'number') {
-        return formatter.format(value);
-      }
-
-      return String(value);
-    };
-
-    const formatMetric = (metric: ResolvedMetric): string => {
-      if (metric.kind === 'count') {
-        return 'COUNT()';
-      }
-
-      return `${metric.kind.toUpperCase()}(${metric.field})`;
-    };
 
     const tableRows = rows.map((row) => ({
-      metric: formatMetric(row.metric),
-      source: formatValue(row.metric, row.sourceValue),
-      target: formatValue(row.metric, row.targetValue),
+      metric: formatMetricLabel(row.metric),
+      source: formatMetricValue(row.metric, row.sourceValue, formatter),
+      target: formatMetricValue(row.metric, row.targetValue, formatter),
       difference: row.difference === null ? '—' : formatter.format(row.difference),
     }));
 
@@ -268,6 +249,41 @@ export default class CompareData extends SfCommand<CompareDataResult> {
   }
 }
 
+const formatMetricLabel = (metric: ResolvedMetric): string => {
+  switch (metric.kind) {
+    case 'count':
+      return 'COUNT(Id)';
+    case 'fieldAggregate':
+      return `${metric.fn.toUpperCase()}(${metric.field})`;
+    case 'countDistinct':
+      return `COUNT_DISTINCT(${metric.field})`;
+    case 'ratio':
+      return metric.label;
+    case 'countIf':
+      return `COUNT_IF(${metric.condition})`;
+    case 'sumIf':
+      return `SUM_IF(${metric.field}|${metric.condition})`;
+  }
+  const exhaustiveCheck: never = metric;
+  return exhaustiveCheck;
+};
+
+const formatMetricValue = (
+  metric: ResolvedMetric,
+  value: number | string | null,
+  formatter: Intl.NumberFormat
+): string => {
+  if (value === null) {
+    return '—';
+  }
+
+  if (metric.valueType === 'number' && typeof value === 'number') {
+    return formatter.format(value);
+  }
+
+  return String(value);
+};
+
 const validateOutputConfiguration = (format: FormatOption, outputFile?: string): void => {
   if ((format === 'csv' || format === 'pdf') && !outputFile) {
     throw new SfError('The --output-file flag is required when format is csv or pdf.', 'OutputFileRequired');
@@ -282,26 +298,103 @@ const reconcileMetrics = (source: ResolvedMetric[], target: ResolvedMetric[]): R
     );
   }
 
-  return source.map((metric, index) => {
-    const targetMetric = target[index];
-    if (metric.kind !== targetMetric.kind) {
-      throw new SfError('Metric kinds differ between org validations.', 'MetricValidationMismatch');
-    }
+  return source.map((metric, index) => validateMetricPair(metric, target[index]));
+};
 
-    if (metric.kind === 'count') {
+const validateMetricPair = (metric: ResolvedMetric, targetMetric: ResolvedMetric): ResolvedMetric => {
+  if (metric.kind !== targetMetric.kind) {
+    throw new SfError('Metric kinds differ between org validations.', 'MetricValidationMismatch');
+  }
+
+  switch (metric.kind) {
+    case 'count':
       return metric;
+    case 'fieldAggregate':
+      return validateFieldAggregate(metric, targetMetric);
+    case 'countDistinct':
+      return validateCountDistinct(metric, targetMetric);
+    case 'ratio':
+      return validateRatio(metric, targetMetric);
+    case 'countIf':
+      return validateConditional(metric, targetMetric);
+    case 'sumIf':
+      return validateConditional(metric, targetMetric);
+    default: {
+      const exhaustiveCheck: never = metric;
+      return exhaustiveCheck;
     }
+  }
+};
 
-    if (targetMetric.kind === 'count') {
-      throw new SfError('Metric kinds differ between org validations.', 'MetricValidationMismatch');
+const validateFieldAggregate = (
+  metric: Extract<ResolvedMetric, { kind: 'fieldAggregate' }>,
+  targetMetric: ResolvedMetric
+): ResolvedMetric => {
+  if (targetMetric.kind !== 'fieldAggregate' || metric.field !== targetMetric.field || metric.fn !== targetMetric.fn) {
+    throw new SfError('Metric field validation differs between source and target orgs.', 'MetricValidationMismatch');
+  }
+
+  return metric;
+};
+
+const validateCountDistinct = (
+  metric: Extract<ResolvedMetric, { kind: 'countDistinct' }>,
+  targetMetric: ResolvedMetric
+): ResolvedMetric => {
+  if (targetMetric.kind !== 'countDistinct' || metric.field !== targetMetric.field) {
+    throw new SfError('Metric field validation differs between source and target orgs.', 'MetricValidationMismatch');
+  }
+
+  return metric;
+};
+
+const validateRatio = (
+  metric: Extract<ResolvedMetric, { kind: 'ratio' }>,
+  targetMetric: ResolvedMetric
+): ResolvedMetric => {
+  if (targetMetric.kind !== 'ratio') {
+    throw new SfError('Metric field validation differs between source and target orgs.', 'MetricValidationMismatch');
+  }
+
+  const numeratorMatches =
+    metric.numerator.field === targetMetric.numerator.field && metric.numerator.fn === targetMetric.numerator.fn;
+  const denominatorMatches =
+    metric.denominator.field === targetMetric.denominator.field &&
+    metric.denominator.fn === targetMetric.denominator.fn;
+
+  if (!numeratorMatches || !denominatorMatches) {
+    throw new SfError('Ratio metric validation differs between source and target orgs.', 'MetricValidationMismatch');
+  }
+
+  return metric;
+};
+
+const validateConditional = (
+  metric: Extract<ResolvedMetric, { kind: 'countIf' | 'sumIf' }>,
+  targetMetric: ResolvedMetric
+): ResolvedMetric => {
+  if (metric.kind === 'sumIf') {
+    if (
+      targetMetric.kind !== 'sumIf' ||
+      metric.field !== targetMetric.field ||
+      metric.condition !== targetMetric.condition
+    ) {
+      throw new SfError(
+        'Conditional metric validation differs between source and target orgs.',
+        'MetricValidationMismatch'
+      );
     }
-
-    if (metric.field !== targetMetric.field) {
-      throw new SfError('Metric field validation differs between source and target orgs.', 'MetricValidationMismatch');
-    }
-
     return metric;
-  });
+  }
+
+  if (targetMetric.kind !== 'countIf' || metric.condition !== targetMetric.condition) {
+    throw new SfError(
+      'Conditional metric validation differs between source and target orgs.',
+      'MetricValidationMismatch'
+    );
+  }
+
+  return metric;
 };
 
 const buildSampleQuery = (plan: ReturnType<AggregateQueryBuilder['build']>, sampleSize: number): string | undefined => {

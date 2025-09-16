@@ -65,7 +65,14 @@ describe('metricParser', () => {
 
     expect(validated).to.deep.equal([
       { kind: 'count', valueType: 'number' },
-      { kind: 'sum', field: 'AnnualRevenue', fieldType: 'currency', label: 'Annual Revenue', valueType: 'number' },
+      {
+        kind: 'fieldAggregate',
+        fn: 'sum',
+        field: 'AnnualRevenue',
+        fieldType: 'currency',
+        label: 'Annual Revenue',
+        valueType: 'number',
+      },
     ]);
   });
 

@@ -161,7 +161,7 @@ describe('compare:data command', () => {
 
     expect(result.outputFile).to.equal(outputPath);
     expect(csv).to.include('Metric,Source,Target,Difference');
-    expect(csv).to.include('COUNT(),10,12,2');
+    expect(csv).to.include('COUNT(Id),10,12,2');
     expect(csv).to.include('Sample Records - Source');
     expect(csv).to.include('Sample Records - Target');
   });
