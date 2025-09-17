@@ -49,3 +49,4 @@ node_modules
 !.yarn/plugins
 !.yarn/sdks
 !.yarn/patches
+.npm-cache

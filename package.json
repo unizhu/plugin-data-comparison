@@ -146,9 +146,7 @@
     "test:only": {
       "command": "nyc mocha \"test/**/*.test.ts\"",
       "env": {
-        "FORCE_COLOR": "2",
-        "TS_NODE_PROJECT": "test/tsconfig.json",
-        "NODE_OPTIONS": "--require ./scripts/wireit-cpu-guard.cjs"
+        "FORCE_COLOR": "2"
       },
       "files": [
         "test/**/*.ts",
