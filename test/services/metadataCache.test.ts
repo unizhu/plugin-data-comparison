@@ -19,6 +19,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import sinon from 'sinon';
 
+import { afterEach, beforeEach, describe, it } from 'mocha';
 import { expect } from 'chai';
 
 import { getMetadataCachePath } from '../../src/services/dataPaths.js';

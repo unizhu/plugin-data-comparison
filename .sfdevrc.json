@@ -1,5 +1,17 @@
 {
   "test": {
     "testsPath": "test/**/*.test.ts"
+  },
+  "devDepOverrides": ["mocha", "chai", "@types/mocha", "@types/chai", "source-map-support"],
+  "wireit": {
+    "test:only": {
+      "command": "nyc mocha \"test/**/*.test.ts\"",
+      "env": {
+        "FORCE_COLOR": "2",
+        "TS_NODE_PROJECT": "test/tsconfig.json"
+      },
+      "files": ["test/**/*.ts", "src/**/*.ts", "**/tsconfig.json", ".mocha*", "!*.nut.ts", ".nycrc"],
+      "output": []
+    }
   }
 }

@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
 import { AggregateQueryBuilder } from '../../src/services/aggregateQueryBuilder.js';

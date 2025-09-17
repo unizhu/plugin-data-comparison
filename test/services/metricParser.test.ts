@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
 import { parseMetricTokens, validateMetricsAgainstDescribe } from '../../src/services/metricParser.js';

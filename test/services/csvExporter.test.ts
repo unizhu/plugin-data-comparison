@@ -18,6 +18,7 @@ import { promises as fs } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
 import { exportComparisonToCsv } from '../../src/services/csvExporter.js';

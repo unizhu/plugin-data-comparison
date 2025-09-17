@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { afterEach, describe, it } from 'mocha';
 import { expect } from 'chai';
 import { Org } from '@salesforce/core';
 import { TestContext } from '@salesforce/core/testSetup';

@@ -18,6 +18,7 @@ import { promises as fs } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { afterEach, beforeEach, describe, it } from 'mocha';
 import { expect } from 'chai';
 import { Org } from '@salesforce/core';
 import { TestContext } from '@salesforce/core/testSetup';
