@@ -79,9 +79,59 @@ fi
 
 That’s it. See `sf compare:data --help` for the full flag list and explore the repository for implementation details.
 
-## 7. Advanced Metrics
+## 7. Example Scenarios
+
+### Opportunity Pipeline Health
+
+```bash
+sf compare data --source-org sfai \
+  --target-org agentforce \
+  --object Opportunity \
+  --metrics 'count,sum:Amount,ratio:sum:Amount/avg:Amount,min:CloseDate,max:CloseDate' \
+  --where "FiscalYear = 2024"
+```
+
+```
+Validated 5 metric(s) for object Opportunity.
+┌─────────────────────────┬────────────┬────────────┬─────────────────┐
+│ Metric                  │ Source     │ Target     │ Target - Source │
+├─────────────────────────┼────────────┼────────────┼─────────────────┤
+│ COUNT(Id)               │ 15         │ 15         │ 0               │
+│ SUM(Amount)             │ 826,964.26 │ 826,964.26 │ 0               │
+│ SUM(Amount)/AVG(Amount) │ 15         │ 15         │ -0              │
+│ MIN(CloseDate)          │ 2024-01-01 │ 2024-01-01 │ —               │
+│ MAX(CloseDate)          │ 2024-12-06 │ 2024-12-06 │ —               │
+└─────────────────────────┴────────────┴────────────┴─────────────────┘
+```
+
+### High-Priority Case SLA Snapshot
+
+```bash
+sf compare data --source-org sfai \
+  --target-org agentforce \
+  --object Case \
+  --metrics 'count,count-distinct:OwnerId' \
+  --metrics 'sum-if:TimeToClose__c:Status="Closed"' \
+  --where "Priority = 'High'" \
+  --format csv --output-file reports/high-priority-cases.csv \
+  --metadata-cache=0
+```
+
+```
+Validated 3 metric(s) for object Case.
+┌──────────────────────────────────────────┬────────┬────────┬─────────────────┐
+│ Metric                                   │ Source │ Target │ Target - Source │
+├──────────────────────────────────────────┼────────┼────────┼─────────────────┤
+│ COUNT(Id)                                │ 38     │ 6      │ -32             │
+│ COUNT_DISTINCT(OwnerId)                  │ 2      │ 1      │ -1              │
+│ SUM_IF(TimeToClose__c|Status = 'Closed') │ -2,484 │ -2,484 │ 0               │
+└──────────────────────────────────────────┴────────┴────────┴─────────────────┘
+CSV report written to /Users/unizhu/Downloads/test/sfai/reports/high-priority-cases.csv
+```
+
+## 8. Advanced Metrics
 
 - Distinct counts: `--metrics count-distinct:Id`
-- Ratios: `--metrics ratio:sum:AnnualRevenue/sum:Amount`
-- Statistical aggregates: `--metrics median:Amount --metrics stddev:Amount`
+- Ratios: `--metrics ratio:sum:Amount/avg:Amount`
 - Conditional aggregations: `--metrics count-if:StageName = 'Closed Won'` or `--metrics sum-if:Amount:StageName = 'Closed Won'`
+- Future: statistical aggregates (median, stddev, variance) once supported by SOQL or via CRM Analytics integration
