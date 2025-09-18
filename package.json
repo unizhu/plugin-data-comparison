@@ -1,7 +1,7 @@
 {
   "name": "@nttdata/plugin-data-comparison",
   "description": "comparing Salesforce object data between two authenticated orgs and exporting the results (e.g., record count, total amount, average revenue) into CSV or PDF",
-  "version": "1.0.0",
+  "version": "1.1.1",
   "author": "Salesforce",
   "bugs": "https://github.com/forcedotcom/cli/issues",
   "dependencies": {
