@@ -78,11 +78,27 @@
             "aggregate": {
               "type": "string"
             },
+            "conditionals": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "alias": {
+                    "type": "string"
+                  },
+                  "query": {
+                    "type": "string"
+                  }
+                },
+                "required": ["alias", "query"],
+                "additionalProperties": false
+              }
+            },
             "sample": {
               "type": "string"
             }
           },
-          "required": ["aggregate"],
+          "required": ["conditionals"],
           "additionalProperties": false
         },
         "samples": {
