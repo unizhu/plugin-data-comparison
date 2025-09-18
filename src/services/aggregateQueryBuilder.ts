@@ -36,12 +36,20 @@ export type MetricDefinition =
       alias: string;
     };
 
+export type ConditionalMetricPlan = {
+  metric: Extract<ResolvedMetric, { kind: 'countIf' | 'sumIf' }>;
+  alias: string;
+  aggregateQuery: string;
+  valueType: MetricValueType;
+};
+
 export type AggregatePlan = {
   objectName: string;
   whereClause?: string;
-  aggregateQuery: string;
+  aggregateQuery?: string;
   expressions: AggregateExpression[];
   metrics: MetricDefinition[];
+  conditionalMetrics: ConditionalMetricPlan[];
   sampleFields: string[];
 };
 
@@ -79,7 +87,10 @@ export class AggregateQueryBuilder {
     const expressionCache = new Map<string, AggregateExpression>();
     const expressions: AggregateExpression[] = [];
     const metricDefinitions: MetricDefinition[] = [];
+    const conditionalMetrics: ConditionalMetricPlan[] = [];
     const sampleFieldSet = new Set<string>();
+
+    const baseWhereClause = buildWhereClause(where);
 
     const addExpression = (key: string, soql: string, baseAlias: string, valueType: MetricValueType): string => {
       const cached = expressionCache.get(key);
@@ -131,6 +142,35 @@ export class AggregateQueryBuilder {
         continue;
       }
 
+      if (metric.kind === 'countIf' || metric.kind === 'sumIf') {
+        const baseAlias =
+          metric.kind === 'countIf'
+            ? sanitizeAlias(`countIf__${hashCondition(metric.condition)}`)
+            : sanitizeAlias(`sumIf__${metric.field.toLowerCase()}_${hashCondition(metric.condition)}`);
+        const alias = uniqueAlias(baseAlias, aliasSet);
+        const aggregateQuery = buildConditionalAggregateQuery({
+          objectName,
+          metric,
+          alias,
+          baseWhereClause,
+        });
+
+        conditionalMetrics.push({
+          metric,
+          alias,
+          aggregateQuery,
+          valueType: metric.valueType,
+        });
+
+        if (metric.kind === 'sumIf') {
+          sampleFieldSet.add(metric.field);
+        }
+
+        metricAliasSet.add(alias);
+        metricDefinitions.push({ kind: 'direct', metric, alias } satisfies MetricDefinition);
+        continue;
+      }
+
       const alias = addDirectMetric(metric, addExpression);
       if ('field' in metric) {
         sampleFieldSet.add(metric.field);
@@ -141,22 +181,25 @@ export class AggregateQueryBuilder {
     }
 
     const selectClause = expressions.map((expr) => `${expr.soql} ${expr.alias}`).join(', ');
-    const whereClause = buildWhereClause(where);
-    const aggregateQuery = `SELECT ${selectClause} FROM ${objectName}${whereClause ? ` WHERE ${whereClause}` : ''}`;
+    const aggregateQuery =
+      selectClause.length > 0
+        ? `SELECT ${selectClause} FROM ${objectName}${baseWhereClause ? ` WHERE ${baseWhereClause}` : ''}`
+        : undefined;
 
     return {
       objectName,
-      whereClause,
+      whereClause: baseWhereClause,
       aggregateQuery,
       expressions,
       metrics: metricDefinitions,
+      conditionalMetrics,
       sampleFields: Array.from(sampleFieldSet),
     } satisfies AggregatePlan;
   }
 }
 
 const addDirectMetric = (
-  metric: Exclude<ResolvedMetric, { kind: 'ratio' }>,
+  metric: Exclude<ResolvedMetric, { kind: 'ratio' | 'countIf' | 'sumIf' }>,
   addExpression: (key: string, soql: string, baseAlias: string, valueType: MetricValueType) => string
 ): string => {
   switch (metric.kind) {
@@ -180,24 +223,6 @@ const addDirectMetric = (
         metric.valueType
       );
     }
-    case 'countIf': {
-      const soql = `SUM(CASE WHEN ${metric.condition} THEN 1 ELSE 0 END)`;
-      return addExpression(
-        buildConditionalKey('countIf', metric.condition),
-        soql,
-        sanitizeAlias(`countIf__${hashCondition(metric.condition)}`),
-        metric.valueType
-      );
-    }
-    case 'sumIf': {
-      const soql = `SUM(CASE WHEN ${metric.condition} THEN ${metric.field} ELSE 0 END)`;
-      return addExpression(
-        buildConditionalKey(`sumIf:${metric.field}`, metric.condition),
-        soql,
-        sanitizeAlias(`sumIf__${metric.field.toLowerCase()}_${hashCondition(metric.condition)}`),
-        metric.valueType
-      );
-    }
     default:
       throw new Error(`Unsupported metric kind ${(metric as ResolvedMetric).kind}`);
   }
@@ -216,9 +241,37 @@ const buildAggregateKey = (
 const buildAggregateExpression = (metric: ResolvedFieldAggregateMetric): string =>
   `${metric.fn.toUpperCase()}(${metric.field})`;
 
-const buildConditionalKey = (prefix: string, condition: string): string => `${prefix}:[${condition}]`;
-
 const hashCondition = (condition: string): string => sanitizeAlias(condition.toLowerCase()).slice(0, 40) || 'expr';
+
+const buildConditionalAggregateQuery = ({
+  objectName,
+  metric,
+  alias,
+  baseWhereClause,
+}: {
+  objectName: string;
+  metric: Extract<ResolvedMetric, { kind: 'countIf' | 'sumIf' }>;
+  alias: string;
+  baseWhereClause?: string;
+}): string => {
+  const whereClause = combineWhereClauses(baseWhereClause, metric.condition);
+  const aggregateExpression = metric.kind === 'countIf' ? 'COUNT(Id)' : `SUM(${metric.field})`;
+  const whereSegment = whereClause.length > 0 ? ` WHERE ${whereClause}` : '';
+  return `SELECT ${aggregateExpression} ${alias} FROM ${objectName}${whereSegment}`;
+};
+
+const combineWhereClauses = (baseClause: string | undefined, condition: string): string => {
+  const trimmedCondition = condition.trim();
+  if (trimmedCondition.length === 0) {
+    return baseClause ?? '';
+  }
+
+  if (!baseClause || baseClause.length === 0) {
+    return trimmedCondition;
+  }
+
+  return `(${baseClause}) AND (${trimmedCondition})`;
+};
 
 const buildWhereClause = (where?: string): string | undefined => {
   if (!where) {

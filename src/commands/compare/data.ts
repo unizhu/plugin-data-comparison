@@ -50,7 +50,11 @@ export type CompareDataResult = {
   source: OrgMetadata;
   target: OrgMetadata;
   queries: {
-    aggregate: string;
+    aggregate?: string;
+    conditionals: Array<{
+      alias: string;
+      query: string;
+    }>;
     sample?: string;
   };
   samples: SampleData;
@@ -207,6 +211,10 @@ export default class CompareData extends SfCommand<CompareDataResult> {
       },
       queries: {
         aggregate: queryPlan.aggregateQuery,
+        conditionals: queryPlan.conditionalMetrics.map((conditional) => ({
+          alias: conditional.alias,
+          query: conditional.aggregateQuery,
+        })),
         sample: sampleQuery,
       },
       samples: comparison.samples,

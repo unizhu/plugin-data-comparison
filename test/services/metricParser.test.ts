@@ -44,6 +44,12 @@ const describeMock: DescribeResult = {
       label: 'Annual Revenue',
     },
     {
+      name: 'OwnerId',
+      type: 'id',
+      aggregatable: true,
+      label: 'Owner',
+    },
+    {
       name: 'LastActivityDate',
       type: 'date',
       aggregatable: true,
@@ -75,6 +81,13 @@ describe('metricParser', () => {
         valueType: 'number',
       },
     ]);
+  });
+
+  it('allows count-distinct on aggregatable non-numeric fields', () => {
+    const parsed = parseMetricTokens(['count', 'count-distinct:OwnerId']);
+    const validated = validateMetricsAgainstDescribe(parsed, describeMock, 'source');
+
+    expect(validated[1]).to.deep.include({ kind: 'countDistinct', field: 'OwnerId', valueType: 'number' });
   });
 
   it('throws when field is missing', () => {

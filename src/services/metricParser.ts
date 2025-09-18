@@ -181,7 +181,7 @@ const resolveMetric = (
       return { kind: 'count', valueType: 'number' } satisfies ResolvedMetric;
     case 'countDistinct': {
       const field = ensureField(describe, metric.field, orgLabel);
-      ensureAggregatableField({ fn: 'sum', field: field.name }, field, orgLabel);
+      ensureCountDistinctField(field, orgLabel);
       return {
         kind: 'countDistinct',
         field: field.name,
@@ -291,6 +291,15 @@ const ensureAggregatableField = (metric: ParsedSimpleAggregate, field: SimpleDes
     throw new SfError(
       `Field "${field.name}" in ${orgLabel} must be numeric or date/time for ${metric.fn.toUpperCase()} metric.`,
       'UnsupportedFieldType'
+    );
+  }
+};
+
+const ensureCountDistinctField = (field: SimpleDescribeField, orgLabel: string): void => {
+  if (!field.aggregatable) {
+    throw new SfError(
+      `Field "${field.name}" in ${orgLabel} is not aggregatable for COUNT_DISTINCT metric.`,
+      'NonAggregatableField'
     );
   }
 };

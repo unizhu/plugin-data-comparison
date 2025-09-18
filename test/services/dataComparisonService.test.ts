@@ -172,6 +172,7 @@ describe('DataComparisonService', () => {
       aggregateQuery: 'SELECT MAX(LastModifiedDate) max__lastmodifieddate FROM Account',
       expressions: [{ alias: 'max__lastmodifieddate', soql: 'MAX(LastModifiedDate)', valueType: 'date' }],
       metrics: [{ kind: 'direct', metric: maxMetric, alias: 'max__lastmodifieddate' } as MetricDefinition],
+      conditionalMetrics: [],
       sampleFields: ['LastModifiedDate'],
     };
 

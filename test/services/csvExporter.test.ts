@@ -69,6 +69,7 @@ const buildResult = (): CompareDataResult => ({
   },
   queries: {
     aggregate: 'SELECT COUNT(Id) count__all FROM Account',
+    conditionals: [],
     sample: undefined,
   },
   samples: {

@@ -40,6 +40,18 @@ const metrics: ResolvedMetric[] = [
   },
 ];
 
+const conditionalMetrics: ResolvedMetric[] = [
+  { kind: 'countIf', condition: "Status='Open - Not Contacted'", valueType: 'number' },
+  {
+    kind: 'sumIf',
+    field: 'NumberOfEmployees',
+    fieldType: 'int',
+    condition: "Status='Open - Not Contacted'",
+    label: 'Number Of Employees',
+    valueType: 'number',
+  },
+];
+
 describe('AggregateQueryBuilder', () => {
   it('builds aggregate query with aliases and where clause', () => {
     const builder = new AggregateQueryBuilder({
@@ -56,6 +68,7 @@ describe('AggregateQueryBuilder', () => {
     expect(plan.whereClause).to.equal("StageName = 'Closed Won'");
     expect(plan.expressions).to.have.length(3);
     expect(plan.metrics[0].alias).to.equal('count__all');
+    expect(plan.conditionalMetrics).to.have.length(0);
   });
 
   it('ensures unique aliases when duplicates occur', () => {
@@ -116,5 +129,36 @@ describe('AggregateQueryBuilder', () => {
     expect(plan.metrics[0].kind).to.equal('ratio');
     expect(plan.metrics[0]).to.have.property('numeratorAlias');
     expect(plan.metrics[0]).to.have.property('denominatorAlias');
+  });
+
+  it('builds conditional aggregates using dedicated queries', () => {
+    const plan = new AggregateQueryBuilder({ objectName: 'Lead', metrics: conditionalMetrics }).build();
+
+    expect(plan.aggregateQuery).to.equal(undefined);
+    expect(plan.expressions).to.be.empty;
+    expect(plan.conditionalMetrics).to.have.length(2);
+    expect(plan.conditionalMetrics[0].aggregateQuery).to.equal(
+      "SELECT COUNT(Id) countIf__status__open___not_contacted_ FROM Lead WHERE Status='Open - Not Contacted'"
+    );
+    expect(plan.conditionalMetrics[1].aggregateQuery).to.equal(
+      "SELECT SUM(NumberOfEmployees) sumIf__numberofemployees_status__open___not_contacted_ FROM Lead WHERE Status='Open - Not Contacted'"
+    );
+    expect(plan.sampleFields).to.include('NumberOfEmployees');
+  });
+
+  it('merges base where clause with conditional metric filters', () => {
+    const plan = new AggregateQueryBuilder({
+      objectName: 'Lead',
+      metrics: conditionalMetrics,
+      where: "LeadSource = 'Partner Referral'",
+    }).build();
+
+    expect(plan.whereClause).to.equal("LeadSource = 'Partner Referral'");
+    expect(plan.conditionalMetrics[0].aggregateQuery).to.equal(
+      "SELECT COUNT(Id) countIf__status__open___not_contacted_ FROM Lead WHERE (LeadSource = 'Partner Referral') AND (Status='Open - Not Contacted')"
+    );
+    expect(plan.conditionalMetrics[1].aggregateQuery).to.equal(
+      "SELECT SUM(NumberOfEmployees) sumIf__numberofemployees_status__open___not_contacted_ FROM Lead WHERE (LeadSource = 'Partner Referral') AND (Status='Open - Not Contacted')"
+    );
   });
 });

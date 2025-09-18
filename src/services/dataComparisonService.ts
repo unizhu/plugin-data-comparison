@@ -95,13 +95,34 @@ const evaluateOrg = async ({
   apiVersionOverride?: string;
 }): Promise<OrgEvaluation> => {
   const connection = await Promise.resolve(org.getConnection(apiVersionOverride));
-  const aggregateResponse = await connection.query<Record<string, unknown>>(plan.aggregateQuery);
-  const record = aggregateResponse.records[0] ?? {};
-
   const aggregates: Record<string, number | string | null> = {};
-  for (const expression of plan.expressions) {
-    const value = record[expression.alias];
-    aggregates[expression.alias] = normalizeAggregateValue(expression.valueType, value);
+
+  if (plan.aggregateQuery) {
+    const aggregateResponse = await connection.query<Record<string, unknown>>(plan.aggregateQuery);
+    const record = aggregateResponse.records[0] ?? {};
+
+    for (const expression of plan.expressions) {
+      const value = record[expression.alias];
+      aggregates[expression.alias] = normalizeAggregateValue(expression.valueType, value);
+    }
+  }
+
+  if (plan.conditionalMetrics.length > 0) {
+    const conditionalResults = await Promise.all(
+      plan.conditionalMetrics.map(async (conditional) => {
+        const response = await connection.query<Record<string, unknown>>(conditional.aggregateQuery);
+        const conditionalRecord = response.records[0] ?? {};
+        return {
+          alias: conditional.alias,
+          value: conditionalRecord[conditional.alias],
+          valueType: conditional.valueType,
+        } as const;
+      })
+    );
+
+    for (const result of conditionalResults) {
+      aggregates[result.alias] = normalizeAggregateValue(result.valueType, result.value);
+    }
   }
 
   let samples: Array<Record<string, unknown>> = [];
