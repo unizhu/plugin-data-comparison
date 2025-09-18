@@ -91,18 +91,17 @@ sf compare data --source-org sfai \
   --where "FiscalYear = 2024"
 ```
 
-```
+```bash
 Validated 5 metric(s) for object Opportunity.
-┌─────────────────────────┬────────────┬────────────┬─────────────────┐
-│ Metric                  │ Source     │ Target     │ Target - Source │
-├─────────────────────────┼────────────┼────────────┼─────────────────┤
-│ COUNT(Id)               │ 15         │ 15         │ 0               │
-│ SUM(Amount)             │ 826,964.26 │ 826,964.26 │ 0               │
-│ SUM(Amount)/AVG(Amount) │ 15         │ 15         │ -0              │
-│ MIN(CloseDate)          │ 2024-01-01 │ 2024-01-01 │ —               │
-│ MAX(CloseDate)          │ 2024-12-06 │ 2024-12-06 │ —               │
-└─────────────────────────┴────────────┴────────────┴─────────────────┘
 ```
+
+| Metric                  | Source     | Target     | Target - Source |
+| :---------------------- | :--------- | :--------- | :-------------- |
+| COUNT(Id)               | 15         | 15         | 0               |
+| SUM(Amount)             | 826,964.26 | 826,964.26 | 0               |
+| SUM(Amount)/AVG(Amount) | 15         | 15         | 0               |
+| MIN(CloseDate)          | 2024-01-01 | 2024-01-01 | —               |
+| MAX(CloseDate)          | 2024-12-06 | 2024-12-06 | —               |
 
 ### High-Priority Case SLA Snapshot
 
@@ -119,13 +118,15 @@ sf compare data --source-org sfai \
 
 ```
 Validated 3 metric(s) for object Case.
-┌──────────────────────────────────────────┬────────┬────────┬─────────────────┐
-│ Metric                                   │ Source │ Target │ Target - Source │
-├──────────────────────────────────────────┼────────┼────────┼─────────────────┤
-│ COUNT(Id)                                │ 38     │ 6      │ -32             │
-│ COUNT_DISTINCT(OwnerId)                  │ 2      │ 1      │ -1              │
-│ SUM_IF(TimeToClose__c|Status = 'Closed') │ -2,484 │ -2,484 │ 0               │
-└──────────────────────────────────────────┴────────┴────────┴─────────────────┘
+```
+
+| Metric                                      | Source | Target | Target - Source |
+| :------------------------------------------ | :----- | :----- | :-------------- |
+| COUNT(Id)                                   | 38     | 6      | -32             |
+| COUNT_DISTINCT(OwnerId)                     | 2      | 1      | -1              |
+| SUM_IF(TimeToClose\_\_c\|Status = 'Closed') | -2,484 | -2,484 | 0               |
+
+```bash
 CSV report written to /Users/unizhu/Downloads/test/sfai/reports/high-priority-cases.csv
 ```
 
@@ -134,4 +135,4 @@ CSV report written to /Users/unizhu/Downloads/test/sfai/reports/high-priority-ca
 - Distinct counts: `--metrics count-distinct:Id`
 - Ratios: `--metrics ratio:sum:Amount/avg:Amount`
 - Conditional aggregations: `--metrics count-if:StageName = 'Closed Won'` or `--metrics sum-if:Amount:StageName = 'Closed Won'`
-- Future: statistical aggregates (median, stddev, variance) once supported by SOQL or via CRM Analytics integration
+- Future: CRM Analytics SAQL like statistical aggregates (median, stddev, variance) not supported by SOQL yet.

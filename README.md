@@ -36,7 +36,7 @@ sf plugins | grep data-comparison
 Run `sf compare:data` with the source and target org aliases, the object API name, and any metrics you want to reconcile.
 
 ```bash
-sf compare:data \
+sf compare data \
   --source-org prod \
   --target-org staging \
   --object Opportunity \
@@ -63,7 +63,7 @@ Key flags:
 ### Export CSV
 
 ```bash
-sf compare:data \
+sf compare data \
   --source-org prod \
   --target-org staging \
   --object Account \
@@ -75,7 +75,7 @@ sf compare:data \
 ### Export PDF
 
 ```bash
-sf compare:data \
+sf compare data \
   --source-org prod \
   --target-org staging \
   --object Account \
@@ -88,7 +88,7 @@ sf compare:data \
 ### JSON for Automation
 
 ```bash
-sf compare:data \
+sf compare data \
   --source-org prod \
   --target-org staging \
   --object Account \
