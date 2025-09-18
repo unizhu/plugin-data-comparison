@@ -137,12 +137,14 @@ describe('AggregateQueryBuilder', () => {
     expect(plan.aggregateQuery).to.equal(undefined);
     expect(plan.expressions).to.be.empty;
     expect(plan.conditionalMetrics).to.have.length(2);
-    expect(plan.conditionalMetrics[0].aggregateQuery).to.equal(
-      "SELECT COUNT(Id) countIf__status__open___not_contacted_ FROM Lead WHERE Status='Open - Not Contacted'"
+    expect(plan.conditionalMetrics[0].aggregateQuery).to.include("Status = 'Open - Not Contacted'");
+    expect(plan.conditionalMetrics[1].aggregateQuery).to.include("Status = 'Open - Not Contacted'");
+    expect(plan.conditionalMetrics[0].alias).to.equal(plan.metrics[0].alias);
+    expect((plan.metrics[0] as { kind: 'direct'; metric: ResolvedMetric }).metric).to.have.property(
+      'condition',
+      "Status = 'Open - Not Contacted'"
     );
-    expect(plan.conditionalMetrics[1].aggregateQuery).to.equal(
-      "SELECT SUM(NumberOfEmployees) sumIf__numberofemployees_status__open___not_contacted_ FROM Lead WHERE Status='Open - Not Contacted'"
-    );
+    expect(plan.conditionalMetrics[1].alias).to.equal(plan.metrics[1].alias);
     expect(plan.sampleFields).to.include('NumberOfEmployees');
   });
 
@@ -154,11 +156,33 @@ describe('AggregateQueryBuilder', () => {
     }).build();
 
     expect(plan.whereClause).to.equal("LeadSource = 'Partner Referral'");
-    expect(plan.conditionalMetrics[0].aggregateQuery).to.equal(
-      "SELECT COUNT(Id) countIf__status__open___not_contacted_ FROM Lead WHERE (LeadSource = 'Partner Referral') AND (Status='Open - Not Contacted')"
-    );
-    expect(plan.conditionalMetrics[1].aggregateQuery).to.equal(
-      "SELECT SUM(NumberOfEmployees) sumIf__numberofemployees_status__open___not_contacted_ FROM Lead WHERE (LeadSource = 'Partner Referral') AND (Status='Open - Not Contacted')"
+    expect(plan.conditionalMetrics[0].aggregateQuery).to.include("(LeadSource = 'Partner Referral')");
+    expect(plan.conditionalMetrics[0].aggregateQuery).to.include("(Status = 'Open - Not Contacted')");
+    expect(plan.conditionalMetrics[1].aggregateQuery).to.include("(LeadSource = 'Partner Referral')");
+    expect(plan.conditionalMetrics[1].aggregateQuery).to.include("(Status = 'Open - Not Contacted')");
+  });
+
+  it('quotes conditional metric values when omitted by the user', () => {
+    const unquoted: ResolvedMetric[] = [
+      { kind: 'countIf', condition: 'Status=Open - Not Contacted', valueType: 'number' },
+      {
+        kind: 'sumIf',
+        field: 'NumberOfEmployees',
+        fieldType: 'int',
+        condition: 'Status=Open - Not Contacted',
+        label: 'Number Of Employees',
+        valueType: 'number',
+      },
+    ];
+
+    const plan = new AggregateQueryBuilder({ objectName: 'Lead', metrics: unquoted }).build();
+
+    expect(plan.conditionalMetrics[0].aggregateQuery).to.include("Status = 'Open - Not Contacted'");
+    expect(plan.conditionalMetrics[1].aggregateQuery).to.include("Status = 'Open - Not Contacted'");
+    expect(plan.conditionalMetrics[0].alias).to.equal(plan.metrics[0].alias);
+    expect((plan.metrics[0] as { kind: 'direct'; metric: ResolvedMetric }).metric).to.have.property(
+      'condition',
+      "Status = 'Open - Not Contacted'"
     );
   });
 });

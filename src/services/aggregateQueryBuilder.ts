@@ -66,6 +66,79 @@ const uniqueAlias = (base: string, existing: Set<string>): string => {
   return candidate;
 };
 
+type SimpleComparisonOperator = '=' | '!=' | '<>' | '<' | '<=' | '>' | '>=';
+
+type ParsedCondition = {
+  field: string;
+  operator: SimpleComparisonOperator;
+  value: string;
+  quoted: boolean;
+};
+
+const SOQL_NUMERIC_PATTERN = /^[-+]?\d+(?:\.\d+)?$/;
+const SOQL_BOOLEAN_PATTERN = /^(?:true|false)$/i;
+const SOQL_NULL_PATTERN = /^null$/i;
+const SOQL_DATE_LITERAL_PATTERN =
+  /^(?:TODAY|YESTERDAY|TOMORROW|THIS_WEEK|LAST_WEEK|NEXT_WEEK|THIS_MONTH|LAST_MONTH|NEXT_MONTH|THIS_QUARTER|LAST_QUARTER|NEXT_QUARTER|THIS_YEAR|LAST_YEAR|NEXT_YEAR)$/i;
+const SOQL_DATETIME_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
+
+const escapeSoqlLiteral = (value: string): string => value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+
+const parseSimpleCondition = (condition: string): ParsedCondition | undefined => {
+  const match = condition.match(/^[\s(]*([A-Za-z0-9_.]+)\s*(=|!=|<>|<=|>=|<|>)\s*(.+?)[)\s]*$/);
+  if (!match) {
+    return undefined;
+  }
+
+  const [, rawField, operator, rawValue] = match;
+  const field = rawField.trim();
+  let value = rawValue.trim();
+  let quoted = false;
+
+  if ((value.startsWith("'") && value.endsWith("'")) || (value.startsWith('"') && value.endsWith('"'))) {
+    value = value.slice(1, -1);
+    quoted = true;
+  }
+
+  return {
+    field,
+    operator: operator as SimpleComparisonOperator,
+    value,
+    quoted,
+  } satisfies ParsedCondition;
+};
+
+const shouldQuote = (value: string, alreadyQuoted: boolean): boolean => {
+  if (alreadyQuoted) {
+    return true;
+  }
+
+  if (
+    SOQL_NUMERIC_PATTERN.test(value) ||
+    SOQL_BOOLEAN_PATTERN.test(value) ||
+    SOQL_NULL_PATTERN.test(value) ||
+    SOQL_DATE_LITERAL_PATTERN.test(value) ||
+    SOQL_DATETIME_PATTERN.test(value)
+  ) {
+    return false;
+  }
+
+  return true;
+};
+
+function normalizeCondition(condition: string): string {
+  const parsed = parseSimpleCondition(condition);
+  if (!parsed) {
+    return condition.trim();
+  }
+
+  const { field, operator, value, quoted } = parsed;
+  const needsQuotes = shouldQuote(value, quoted);
+  const normalizedValue = needsQuotes ? `'${escapeSoqlLiteral(value)}'` : value;
+
+  return `${field} ${operator} ${normalizedValue}`;
+}
+
 export class AggregateQueryBuilder {
   public constructor(
     private readonly options: {
@@ -143,31 +216,38 @@ export class AggregateQueryBuilder {
       }
 
       if (metric.kind === 'countIf' || metric.kind === 'sumIf') {
+        const normalizedCondition = normalizeCondition(metric.condition);
+        const normalizedMetric = { ...metric, condition: normalizedCondition } as Extract<
+          ResolvedMetric,
+          { kind: 'countIf' | 'sumIf' }
+        >;
+
         const baseAlias =
-          metric.kind === 'countIf'
-            ? sanitizeAlias(`countIf__${hashCondition(metric.condition)}`)
-            : sanitizeAlias(`sumIf__${metric.field.toLowerCase()}_${hashCondition(metric.condition)}`);
+          normalizedMetric.kind === 'countIf'
+            ? sanitizeAlias(`countIf__${hashCondition(normalizedCondition)}`)
+            : sanitizeAlias(`sumIf__${normalizedMetric.field.toLowerCase()}_${hashCondition(normalizedCondition)}`);
         const alias = uniqueAlias(baseAlias, aliasSet);
         const aggregateQuery = buildConditionalAggregateQuery({
           objectName,
-          metric,
+          metric: normalizedMetric,
           alias,
           baseWhereClause,
+          condition: normalizedCondition,
         });
 
         conditionalMetrics.push({
-          metric,
+          metric: normalizedMetric,
           alias,
           aggregateQuery,
-          valueType: metric.valueType,
+          valueType: normalizedMetric.valueType,
         });
 
-        if (metric.kind === 'sumIf') {
-          sampleFieldSet.add(metric.field);
+        if (normalizedMetric.kind === 'sumIf') {
+          sampleFieldSet.add(normalizedMetric.field);
         }
 
         metricAliasSet.add(alias);
-        metricDefinitions.push({ kind: 'direct', metric, alias } satisfies MetricDefinition);
+        metricDefinitions.push({ kind: 'direct', metric: normalizedMetric, alias } satisfies MetricDefinition);
         continue;
       }
 
@@ -248,13 +328,15 @@ const buildConditionalAggregateQuery = ({
   metric,
   alias,
   baseWhereClause,
+  condition,
 }: {
   objectName: string;
   metric: Extract<ResolvedMetric, { kind: 'countIf' | 'sumIf' }>;
   alias: string;
   baseWhereClause?: string;
+  condition: string;
 }): string => {
-  const whereClause = combineWhereClauses(baseWhereClause, metric.condition);
+  const whereClause = combineWhereClauses(baseWhereClause, condition);
   const aggregateExpression = metric.kind === 'countIf' ? 'COUNT(Id)' : `SUM(${metric.field})`;
   const whereSegment = whereClause.length > 0 ? ` WHERE ${whereClause}` : '';
   return `SELECT ${aggregateExpression} ${alias} FROM ${objectName}${whereSegment}`;
