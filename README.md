@@ -14,13 +14,13 @@ Compare aggregated Salesforce record data across two authenticated orgs without 
 Install the plugin into the Salesforce CLI (`sf`):
 
 ```bash
-sf plugins install @salesforce/plugin-data-comparison
+sf plugins install @nttdata/plugin-data-comparison
 ```
 
 To upgrade to the latest published version:
 
 ```bash
-sf plugins update @salesforce/plugin-data-comparison
+sf plugins update @nttdata/plugin-data-comparison
 ```
 
 Verify the installation:
@@ -33,7 +33,7 @@ sf plugins | grep data-comparison
 
 ### Compare SObject Metrics
 
-Run `sf compare:data` with the source and target org aliases, the object API name, and any metrics you want to reconcile.
+Run `sf compare:data` or `sf compare data` with the source and target org aliases, the object API name, and any metrics you want to reconcile.
 
 ```bash
 sf compare data \
@@ -112,4 +112,4 @@ All direct dependencies are distributed under the Apache-2.0 license. Review ind
 
 ## Contributing and Support
 
-Please report issues and feature requests at https://github.com/forcedotcom/cli/issues. Contribution guidelines and tooling instructions are unchanged from the template; see [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) and the repository wiki for more details.
+Please report issues and feature requests at https://github.com/unizhu/plugin-data-comparison/issues. Contribution guidelines and tooling instructions are unchanged from the template; see [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) and the repository wiki for more details.

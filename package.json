@@ -1,5 +1,5 @@
 {
-  "name": "@salesforce/plugin-data-comparison",
+  "name": "@nttdata/plugin-data-comparison",
   "description": "comparing Salesforce object data between two authenticated orgs and exporting the results (e.g., record count, total amount, average revenue) into CSV or PDF",
   "version": "1.0.0",
   "author": "Salesforce",

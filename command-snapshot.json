@@ -20,6 +20,6 @@
       "timeout",
       "api-version"
     ],
-    "plugin": "@salesforce/plugin-data-comparison"
+    "plugin": "@nttdata/plugin-data-comparison"
   }
 ]

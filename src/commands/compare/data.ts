@@ -26,7 +26,7 @@ import { exportComparisonToPdf } from '../../services/pdfExporter.js';
 import { parseMetricTokens, validateMetricsAgainstDescribe, type ResolvedMetric } from '../../services/metricParser.js';
 
 Messages.importMessagesDirectoryFromMetaUrl(import.meta.url);
-const messages = Messages.loadMessages('@salesforce/plugin-data-comparison', 'compare.data');
+const messages = Messages.loadMessages('@nttdata/plugin-data-comparison', 'compare.data');
 
 type FormatOption = 'table' | 'json' | 'csv' | 'pdf';
 
