@@ -14,13 +14,13 @@ Compare aggregated Salesforce record data across two authenticated orgs without 
 Install the plugin into the Salesforce CLI (`sf`):
 
 ```bash
-sf plugins install @nttdata/plugin-data-comparison
+sf plugins install @unidotnet/plugin-data-comparison
 ```
 
 To upgrade to the latest published version:
 
 ```bash
-sf plugins update @nttdata/plugin-data-comparison
+sf plugins update @unidotnet/plugin-data-comparison
 ```
 
 Verify the installation:

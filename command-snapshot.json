@@ -20,6 +20,6 @@
       "timeout",
       "api-version"
     ],
-    "plugin": "@nttdata/plugin-data-comparison"
+    "plugin": "@unidotnet/plugin-data-comparison"
   }
 ]

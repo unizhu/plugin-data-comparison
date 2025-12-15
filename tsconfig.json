@@ -3,6 +3,7 @@
   "compilerOptions": {
     "outDir": "lib",
     "rootDir": "src",
+    "tsBuildInfoFile": "lib/tsconfig.tsbuildinfo",
 
     "lib": ["ES2022"], // <-- keep DOM out to avoid SharedArrayBuffer conflicts
     "types": ["node"], // <-- use Node globals/Buffer
