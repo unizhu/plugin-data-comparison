@@ -1,7 +1,7 @@
 {
   "name": "@unidotnet/plugin-data-comparison",
   "description": "comparing Salesforce object data between two authenticated orgs and exporting the results (e.g., record count, total amount, average revenue) into CSV or PDF",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "author": "Salesforce",
   "bugs": "https://github.com/unizhu/plugin-data-comparison/issues",
   "dependencies": {
